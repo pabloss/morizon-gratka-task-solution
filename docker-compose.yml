@@ -1,0 +1,37 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+
+  phoenix:
+    build: ./phoenix-api
+    environment:
+      DATABASE_URL: ecto://postgres:postgres@db/phoenix_app
+    depends_on:
+      - db
+    ports:
+      - "4000:4000"
+    volumes:
+      # 1. Mapujemy Twój lokalny katalog do katalogu roboczego kontenera
+      - ./phoenix-api:/app
+
+      # 2. "Anonimowe wolumeny" dla katalogów systemowych Elixira
+      # Dzięki temu skompilowane pliki (Linuxowe) nie nadpisują się z Twoim hostem
+      # i działają szybciej.
+      - /app/deps
+      - /app/_build
+
+  symfony:
+    build: ./symfony-app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./symfony-app:/app  # <--- TU JEST KLUCZOWA ZMIANA (Hot Reloading)
+    depends_on:
+      - phoenix # Zakładam, że Symfony korzysta z API Phoenixa
